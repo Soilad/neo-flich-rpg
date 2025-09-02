@@ -215,7 +215,7 @@ while run:
         else:
             camera_x = camera_y = 0
 
-    ysort = sorted(room.inters + [sawman, zwei], key=lambda r: r.y)
+    ysort = sorted(room.inters + [sawman, zwei], key=lambda r: r.position())
     pygame.display.update()
 
     music.set_volume(mvol)
@@ -240,9 +240,11 @@ while run:
                 for inter in room.inters:
                     # pygame.draw.rect(screen, (255,0,0),inter.rect)
 
-                    ysort = sorted(room.inters + [sawman, zwei], key=lambda r: r.y)
+                    ysort = sorted(
+                        room.inters + [sawman, zwei], key=lambda r: r.position()
+                    )
                     if pygame.Rect.collidepoint(
-                        inter.rect, (sawman.xf + 50, sawman.yf)
+                        inter.rect, (sawman.xf + 50, sawman.yf + 100)
                     ):
                         if sawman.dindex:
                             sawman.stop = True

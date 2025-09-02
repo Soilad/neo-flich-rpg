@@ -51,9 +51,8 @@ fontmin = pygame.font.Font(f"{cwd}/ui/Soilad.otf", 24)
 
 
 class Chara:
-    collision = in_object = False
+    collision = False
     zhealth = shealth = 100
-    dx, dy = 0, 0
     frame = money = dir = dindex = rindex = 0
     scale = 1
     stop = inenem = False
@@ -64,9 +63,6 @@ class Chara:
     def __init__(self, pos, sprite):
         self.spritesheet1 = pygame.image.load(sprite).convert_alpha()
         self.xi, self.yi = self.xf, self.yf = self.x, self.y = pos
-
-    def lock(self):
-        self.x, self.y = 640, 360
 
     def save(self):
         return (
@@ -91,7 +87,7 @@ class Chara:
         ) = a
 
     def move(self, room, keys, tick, wall, entertime, ysort, offset):
-        y_offset = 400
+        y_offset = 240
         speed = 12 << keys[pygame.K_LSHIFT]
         if debug_mode:
             self.dindex += keys[pygame.K_LCTRL]
@@ -124,8 +120,8 @@ class Chara:
                     self.dir = 2
             self.frame = (tick * 2) // speed % 4
             self.xf, self.yf = (
-                clamp(self.x + (self.dx * speed * self.scale), 0, room.w - 100),
-                clamp(self.y + (self.dy * speed * self.scale), 0, room.h - 239),
+                max(0, min(1180, self.x + (self.dx * speed * self.scale))),
+                max(0, min(481, self.y + (self.dy * speed * self.scale))),
             )
 
             # for i in ysort:
@@ -133,19 +129,21 @@ class Chara:
             #         screen, (0, 0, 0), i.sprite.get_rect(topleft=(i.x, i.y))
             #     )
 
-            self.in_object = reduce(
+            in_object = reduce(
                 lambda x, y: x or y,
                 [
                     rect.sprite.get_rect(topleft=(rect.x, rect.y)).collidepoint(
-                        (self.xf + 50, self.yf + y_offset - (239 * self.scale))
+                        (
+                            self.xf + 50,
+                            self.yf + y_offset * self.scale + (239 - 239 * self.scale),
+                        )
                     )
                     and rect.collision
                     for rect in ysort
                 ],
             )
             # print(in_object)
-            print(self.xf)
-            if sawman.mask.overlap(wall, (-self.xf, -self.yf - 188)) or self.in_object:
+            if sawman.mask.overlap(wall, (-self.xf, -self.yf - y_offset)) or in_object:
                 for adj in (
                     (1, 1),
                     (-1, 1),
@@ -162,15 +160,15 @@ class Chara:
                             -self.yf - 188 + (adj[1] * self.scale * speed),
                         ),
                     )
-                    self.in_object = reduce(
+                    in_object = reduce(
                         lambda x, y: x or y,
                         [
                             rect.sprite.get_rect(topleft=(rect.x, rect.y)).collidepoint(
                                 (
                                     self.xf + 50 + (adj[0] * self.scale * speed),
                                     self.yf
-                                    + y_offset
-                                    - (239 * self.scale)
+                                    + y_offset * self.scale
+                                    + (239 - 239 * self.scale)
                                     + (adj[0] * self.scale * speed),
                                 )
                             )
@@ -183,10 +181,10 @@ class Chara:
                             wall,
                             (
                                 -self.xf + (adj[0] * self.scale * speed),
-                                -self.yf - 188 + (adj[1] * self.scale * speed),
+                                -self.yf - y_offset + (adj[1] * self.scale * speed),
                             ),
                         )
-                        or self.in_object
+                        or in_object
                     ):
                         self.x, self.y = (
                             self.xf - (adj[0] * self.scale * speed),
@@ -194,9 +192,8 @@ class Chara:
                         )
 
             else:
-                if not self.in_object:
+                if not in_object:
                     self.x, self.y = self.xf, self.yf
-
             # if sawman.mask.overlap(wall, (-self.x, -self.y - 188)):
             #     self.x = (self.x + int(datetime_ist.strftime("%I%M")[:1:])) % 1280
             #     self.y = (self.y + int(datetime_ist.strftime("%I%M")[:1:-1])) % 720
@@ -214,9 +211,12 @@ class Chara:
         # pygame.draw.circle(
         #     screen,
         #     (255, 0, 0),
-        #     (self.xf + 50, self.yf + y_offset - (239 * self.scale)),
+        #     (self.xf + 50, self.yf + y_offset * self.scale + (239 - 239 * self.scale)),
         #     10,
         # )
+
+    def position(self):
+        return self.y + 400
 
 
 class Zweistein:
@@ -248,6 +248,9 @@ class Zweistein:
             self.sprite,
             (self.x + offset[0], self.y + offset[1] + (239 - 239 * self.scale)),
         )
+
+    def position(self):
+        return self.y + 400
 
 
 class Inventory:
@@ -627,6 +630,9 @@ class Obj:
                     ),
                 )
 
+    def position(self):
+        return self.y
+
 
 class Chaser:
     t = 0
@@ -691,6 +697,9 @@ class Chaser:
     def textbox(self, b, c, d, e):
         pass
         # self0enemies[1] -= 30
+
+    def position(self):
+        return self.y
 
 
 class Battle:
@@ -1335,6 +1344,9 @@ class Trader:
     def move(self, room, keys, tick, wall, entertime, ysort, offset):
         screen.blit(self.sprite, (self.x + offset[0], self.y + offset[0]))
 
+    def position(self):
+        return self.y
+
 
 class Button:
     def __init__(self, id, pos, dim, thicc):
@@ -1428,8 +1440,8 @@ class Button:
             return self.id
 
 
-x = 1280
-y = 720
+x = 640
+y = 360
 keys = pygame.key.get_pressed()
 sawman = Chara((x, y), f"{cwd}/sprites/sawman.png")
 zwei = Zweistein((x, y), f"{cwd}/sprites/zweistein.png")
