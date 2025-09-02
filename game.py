@@ -1,6 +1,6 @@
 import pygame
 from func import pullup, _apply_glow, _add_glitch_effect, _apply_flicker
-from pygame.math import lerp
+from pygame.math import clamp, lerp
 from PygameShader.shader import chromatic
 from classes import (
     sawman,
@@ -120,7 +120,6 @@ while run:
                 tab = 0
             case "Continue Game":
                 game = True
-                print(1)
                 try:
                     with open(f"{cwd}/save.txt", "r") as save:
                         savedata = save.read()
@@ -207,8 +206,16 @@ while run:
     entertime = tick
     if tick - entertime < 10:
         pullup(fontaliased, fontmin, screen, bgm, tick - entertime)
-    room.render()
-    ysort = sorted(room.inters + [sawman, zwei], key=lambda r: r.position())
+    camera_x = camera_y = 0
+    room.render(camera_x, camera_y)
+    if room.h != 720:
+        if sawman.dx or sawman.dy:
+            camera_x = camera_x - (sawman.xf - 640)
+            camera_y = camera_y - (sawman.yf - 360)
+        else:
+            camera_x = camera_y = 0
+
+    ysort = sorted(room.inters + [sawman, zwei], key=lambda r: r.y)
     pygame.display.update()
 
     music.set_volume(mvol)
@@ -217,24 +224,25 @@ while run:
         if not run:
             break
         if not battle.enemies:
-            room.render()
+            room.render(camera_x, camera_y)
+            if room.h != 720:
+                if sawman.dx or sawman.dy:
+                    camera_x = clamp(-(sawman.xf - 640), room.w / -2, room.w / 2)
+                    camera_y = clamp(-(sawman.yf - 360), room.h / -2, room.h / 2)
+            else:
+                camera_x = camera_y = 0
+
             for item in ysort:
-                item.move(room, keys, tick, wall, entertime, ysort)
+                item.move(
+                    room, keys, tick, wall, entertime, ysort, (camera_x, camera_y)
+                )
             if room.inters:
                 for inter in room.inters:
                     # pygame.draw.rect(screen, (255,0,0),inter.rect)
-                    ysort = sorted(
-                        room.inters + [sawman, zwei], key=lambda r: r.position()
-                    )
-                    # pygame.draw.circle(
-                    #     screen,
-                    #     (0, 0, 0),
-                    #     (sawman.xf + 50, sawman.yf + 239 * (1 - sawman.scale) + 80),
-                    #     20,
-                    # )
+
+                    ysort = sorted(room.inters + [sawman, zwei], key=lambda r: r.y)
                     if pygame.Rect.collidepoint(
-                        inter.rect,
-                        (sawman.xf + 50, sawman.yf + 239 * (1 - sawman.scale) + 80),
+                        inter.rect, (sawman.xf + 50, sawman.yf)
                     ):
                         if sawman.dindex:
                             sawman.stop = True
@@ -256,7 +264,7 @@ while run:
                                 lerp(interymov, 300, (tick - tbstart) / 45)
                             )
             else:
-                ysort = sorted([sawman, zwei], key=lambda r: r.position())
+                ysort = sorted([sawman, zwei], key=lambda r: r.y)
 
         else:
             # print(battle.enemies)
@@ -283,8 +291,8 @@ while run:
         elif not room.dialog:
             sawman.stop = False
             roomymov = 600
-        # if nighttime.strftime("%p") == "PM" and room.outside and not battle.enemies:
-        #     screen.blit(night, (0, 0), special_flags=pygame.BLEND_SUB)
+        if nighttime.strftime("%p") == "PM" and room.outside and not battle.enemies:
+            screen.blit(night, (0, 0), special_flags=pygame.BLEND_SUB)
         inventory.open(sawman, mscroll, tick)
         for event in pygame.event.get():
             keys = pygame.key.get_pressed()
@@ -391,7 +399,7 @@ while run:
                 room = levels[sawman.rindex]
                 portals = room.portals
                 entertime = tick
-                ysort = sorted(room.inters + [sawman, zwei], key=lambda r: r.position())
+                ysort = sorted(room.inters + [sawman, zwei], key=lambda r: r.y)
                 wall = room.mask
                 if room.bgm and room.bgm != bgm:
                     bgm = room.bgm

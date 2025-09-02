@@ -2,7 +2,7 @@ import pygame
 from os import getcwd
 from datetime import datetime
 from pygame.image import save
-from pygame.math import lerp
+from pygame.math import lerp, clamp
 import pytz
 from functools import reduce
 from func import (
@@ -51,8 +51,9 @@ fontmin = pygame.font.Font(f"{cwd}/ui/Soilad.otf", 24)
 
 
 class Chara:
-    collision = False
+    collision = in_object = False
     zhealth = shealth = 100
+    dx, dy = 0, 0
     frame = money = dir = dindex = rindex = 0
     scale = 1
     stop = inenem = False
@@ -63,6 +64,9 @@ class Chara:
     def __init__(self, pos, sprite):
         self.spritesheet1 = pygame.image.load(sprite).convert_alpha()
         self.xi, self.yi = self.xf, self.yf = self.x, self.y = pos
+
+    def lock(self):
+        self.x, self.y = 640, 360
 
     def save(self):
         return (
@@ -86,8 +90,8 @@ class Chara:
             self.shealth,
         ) = a
 
-    def move(self, room, keys, tick, wall, entertime, ysort):
-        y_offset = 240
+    def move(self, room, keys, tick, wall, entertime, ysort, offset):
+        y_offset = 400
         speed = 12 << keys[pygame.K_LSHIFT]
         if debug_mode:
             self.dindex += keys[pygame.K_LCTRL]
@@ -120,8 +124,8 @@ class Chara:
                     self.dir = 2
             self.frame = (tick * 2) // speed % 4
             self.xf, self.yf = (
-                max(0, min(1180, self.x + (self.dx * speed * self.scale))),
-                max(0, min(481, self.y + (self.dy * speed * self.scale))),
+                clamp(self.x + (self.dx * speed * self.scale), 0, room.w - 100),
+                clamp(self.y + (self.dy * speed * self.scale), 0, room.h - 239),
             )
 
             # for i in ysort:
@@ -129,21 +133,19 @@ class Chara:
             #         screen, (0, 0, 0), i.sprite.get_rect(topleft=(i.x, i.y))
             #     )
 
-            in_object = reduce(
+            self.in_object = reduce(
                 lambda x, y: x or y,
                 [
                     rect.sprite.get_rect(topleft=(rect.x, rect.y)).collidepoint(
-                        (
-                            self.xf + 50,
-                            self.yf + y_offset * self.scale + (239 - 239 * self.scale),
-                        )
+                        (self.xf + 50, self.yf + y_offset - (239 * self.scale))
                     )
                     and rect.collision
                     for rect in ysort
                 ],
             )
             # print(in_object)
-            if sawman.mask.overlap(wall, (-self.xf, -self.yf - y_offset)) or in_object:
+            print(self.xf)
+            if sawman.mask.overlap(wall, (-self.xf, -self.yf - 188)) or self.in_object:
                 for adj in (
                     (1, 1),
                     (-1, 1),
@@ -160,15 +162,15 @@ class Chara:
                             -self.yf - 188 + (adj[1] * self.scale * speed),
                         ),
                     )
-                    in_object = reduce(
+                    self.in_object = reduce(
                         lambda x, y: x or y,
                         [
                             rect.sprite.get_rect(topleft=(rect.x, rect.y)).collidepoint(
                                 (
                                     self.xf + 50 + (adj[0] * self.scale * speed),
                                     self.yf
-                                    + y_offset * self.scale
-                                    + (239 - 239 * self.scale)
+                                    + y_offset
+                                    - (239 * self.scale)
                                     + (adj[0] * self.scale * speed),
                                 )
                             )
@@ -181,10 +183,10 @@ class Chara:
                             wall,
                             (
                                 -self.xf + (adj[0] * self.scale * speed),
-                                -self.yf - y_offset + (adj[1] * self.scale * speed),
+                                -self.yf - 188 + (adj[1] * self.scale * speed),
                             ),
                         )
-                        or in_object
+                        or self.in_object
                     ):
                         self.x, self.y = (
                             self.xf - (adj[0] * self.scale * speed),
@@ -192,8 +194,9 @@ class Chara:
                         )
 
             else:
-                if not in_object:
+                if not self.in_object:
                     self.x, self.y = self.xf, self.yf
+
             # if sawman.mask.overlap(wall, (-self.x, -self.y - 188)):
             #     self.x = (self.x + int(datetime_ist.strftime("%I%M")[:1:])) % 1280
             #     self.y = (self.y + int(datetime_ist.strftime("%I%M")[:1:-1])) % 720
@@ -204,16 +207,16 @@ class Chara:
             clip(self.spritesheet1, 100 * self.frame, 239 * self.dir),
             (100 * self.scale, 239 * self.scale),
         )
-        screen.blit(self.sprite, (self.x, (self.y) + (239 - 239 * self.scale)))
+        screen.blit(
+            self.sprite,
+            (self.x + offset[0], self.y + offset[1] + (239 - 239 * self.scale)),
+        )
         # pygame.draw.circle(
         #     screen,
         #     (255, 0, 0),
-        #     (self.xf + 50, self.yf + y_offset * self.scale + (239 - 239 * self.scale)),
+        #     (self.xf + 50, self.yf + y_offset - (239 * self.scale)),
         #     10,
         # )
-
-    def position(self):
-        return self.y + 400
 
 
 class Zweistein:
@@ -230,7 +233,7 @@ class Zweistein:
     def load(self, a):
         self.poss, self.x, self.y = a
 
-    def move(self, room, keys, tick, wall, entertime, ysort):
+    def move(self, room, keys, tick, wall, entertime, ysort, offset):
         if self.poss[-1] != (sawman.x, sawman.y):
             self.poss.append((sawman.x, sawman.y))
             if len(self.poss) > 16:
@@ -241,10 +244,10 @@ class Zweistein:
             clip(self.spritesheet2, 100 * sawman.frame, 239 * sawman.dir),
             (100 * self.scale, 239 * self.scale),
         )
-        screen.blit(self.sprite, (self.x, self.y + (239 - 239 * self.scale)))
-
-    def position(self):
-        return self.y + 400
+        screen.blit(
+            self.sprite,
+            (self.x + offset[0], self.y + offset[1] + (239 - 239 * self.scale)),
+        )
 
 
 class Inventory:
@@ -526,9 +529,8 @@ class Obj:
                     for k in self.diarender[idex][jdex].split("\n")
                 ]
 
-    def move(self, room, keys, tick, wall, entertime, ysort):
-        screen.blit(self.sprite, (self.x, self.y))
-        # pygame.draw.rect(screen, (255, 0, 0), self.rect)
+    def move(self, room, keys, tick, wall, entertime, ysort, offset):
+        screen.blit(self.sprite, (self.x + offset[0], self.y + offset[1]))
 
     def textbox(self, sawman, inventory, i, ymov):
         if sawman.dindex > self.dialen:
@@ -625,9 +627,6 @@ class Obj:
                     ),
                 )
 
-    def position(self):
-        return self.y
-
 
 class Chaser:
     t = 0
@@ -653,7 +652,7 @@ class Chaser:
     def load(self, a):
         self.enemies, _, _ = a
 
-    def move(self, room, keys, tick, wall, entertime, ysort):
+    def move(self, room, keys, tick, wall, entertime, ysort, offset):
         scale = self.y / 360 if room.outside else 1
         if self.enemies:
             if tick - entertime > self.shock * 6:
@@ -684,17 +683,14 @@ class Chaser:
             screen.blit(
                 pygame.transform.scale(self.sprite, (self.w * scale, self.h * scale)),
                 (
-                    self.x,
-                    self.y + (self.h - self.h * scale) - 120 * scale,
+                    self.x + offset[0],
+                    self.y + offset[1] + (self.h - self.h * scale) - 120 * scale,
                 ),
             )
 
     def textbox(self, b, c, d, e):
         pass
         # self0enemies[1] -= 30
-
-    def position(self):
-        return self.y
 
 
 class Battle:
@@ -1112,6 +1108,8 @@ class Battle:
 
 
 class Room:
+    x, y = 0, 0
+
     def __init__(self, room, bgm, outside, inters, portals, dialog):
         self.outside = outside
         self.inters = inters
@@ -1119,6 +1117,7 @@ class Room:
         self.bgm = bgm if bgm else 0
         self.wall = pygame.image.load(f"{cwd}/rooms/{room}/wall.png").convert_alpha()
         self.floor = pygame.image.load(f"{cwd}/rooms/{room}/floor.png").convert_alpha()
+        self.w, self.h = self.wall.get_size()
         self.mask = pygame.mask.from_surface(self.wall)
         self.portals = portals
         self.dialog = dialog
@@ -1157,9 +1156,31 @@ class Room:
                         for k in self.diarender[idex][jdex].split("\n")
                     ]
 
-    def render(self):
-        screen.blit(self.floor, (0, 0))
-        screen.blit(self.wall, (0, 0))
+    def render(self, x, y):
+        # speed = 12 << keys[pygame.K_LSHIFT]
+        # if self.h != 720:
+        #     dx, dy = (
+        #         (
+        #             keys[pygame.K_d]
+        #             - keys[pygame.K_a]
+        #             + keys[pygame.K_RIGHT]
+        #             - keys[pygame.K_LEFT]
+        #         ),
+        #         (
+        #             keys[pygame.K_s]
+        #             - keys[pygame.K_w]
+        #             + keys[pygame.K_DOWN]
+        #             - keys[pygame.K_UP]
+        #         ),
+        #     )
+        #     print(dx, dy)
+        #     self.xf, self.yf = (
+        #         clamp(self.x - (dx * speed), 0, 1180),
+        #         clamp(self.y - (dy * speed), 0, 481),
+        #     )
+        #     self.x, self.y = self.xf, self.yf
+        screen.blit(self.floor, (x, y))
+        screen.blit(self.wall, (x, y))
 
     def textbox(self, i, ymov):
         if sawman.dindex > self.dialen:
@@ -1311,11 +1332,8 @@ class Trader:
     def save(a):
         pass
 
-    def move(self, room, keys, tick, wall, entertime, ysort):
-        screen.blit(self.sprite, (self.x, self.y))
-
-    def position(self):
-        return self.y
+    def move(self, room, keys, tick, wall, entertime, ysort, offset):
+        screen.blit(self.sprite, (self.x + offset[0], self.y + offset[0]))
 
 
 class Button:
@@ -1410,8 +1428,8 @@ class Button:
             return self.id
 
 
-x = 640
-y = 500
+x = 1280
+y = 720
 keys = pygame.key.get_pressed()
 sawman = Chara((x, y), f"{cwd}/sprites/sawman.png")
 zwei = Zweistein((x, y), f"{cwd}/sprites/zweistein.png")
