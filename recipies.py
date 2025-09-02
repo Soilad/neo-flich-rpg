@@ -17,4 +17,7 @@ recipies = {
     (("Alcoholic NaOH", -1), ("Oil", 1)): [("Glycerin", -1), ("Biodiesel", -1)],
     (("Nitric Acid", -1), ("Sulphuric Acid", -1)): ("Nitration Bath", -1),
     (("Glycerin", -1), ("Nitration Bath", -1)): ("Nitroglycerin", -200),
+    
+    (("Paper", -1), ("Ink", -1)): ("Sigil", -9999),
+    (("Cheese", -1), ("Harnesser", -1)): ("CheeseHarnesser", 9999),
 }
