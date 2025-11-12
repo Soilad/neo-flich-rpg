@@ -319,10 +319,10 @@ while run:
                             ysort = current_room.inters + sorted(
                                 [sawman, zwei], key=lambda r: r.current_position.y
                             )
-                        if pygame.Rect.collidepoint(
-                            inter.rect, sawman.final_position + (50, 0)
+                        if pygame.Rect.colliderect(
+                                inter.rect, ((sawman.final_position), (100 * sawman.scale, 239 * sawman.scale))
                         ):
-                            if player_vars.dialog_index:
+                            if player_vars.dialog_index and not current_room.dialog:
                                 sawman.stop = True
                                 inter.textbox(
                                     textbox_surface,

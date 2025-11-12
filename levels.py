@@ -41,15 +41,18 @@ levels = [
                         ],
                         custom_funcs.npc_give_items({("Sigil of Friendship", -1): 3})
                     ),
-                    [
-                        (("zweistein", "sad"), "why tf did u give us okarun's balls"),
+                    (
                         (
-                            0,
-                            "its gonna take me years to castrate someone with no balls so take this and leave",
+                            (("zweistein", "sad"), "why tf did u give us okarun's balls"),
+                            (
+                                0,
+                                "its gonna take me years to castrate someone with no balls so take this and leave",
+                            ),
+                            (("sawman", "ono"), "..."),
+                            (("sawman", "sad"), "jesus"),
                         ),
-                        (("sawman", "ono"), "..."),
-                        (("sawman", "sad"), "jesus"),
-                    ],
+                        custom_funcs.npc_do_nothing()
+                    )
                 ],
             ),
             Obj(

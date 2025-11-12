@@ -504,6 +504,7 @@ class Obj:
                 print(self.custom_funcs)
                 run_after_dialog(inventory.inventory_dict)
                 inventory.update_items()
+                print(self.dialogs[0])
                 self.dialog, self.custom_funcs = self.dialogs.pop(0)
                 self.dialog_len, self.rendered_dialog = set_dialog(self.dialog, font_medium, fontaliased)
 
