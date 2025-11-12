@@ -8,12 +8,14 @@ from pygame import (
     BLEND_RGBA_MIN,
 )
 import random
+from numba import jit
 
 
+@jit
 def scroll(s):
     l = []
     for i in range(len(s) + 1):
-        l.append(s[:i:])
+        l.append(s[:i])
     return l
 
 
@@ -48,12 +50,24 @@ def shadow(surface, thicc, color):
     return a
 
 
-def clip(surface, x, y):
-    handle_surface = surface.copy()
-    clipRect = Rect(x, y, 100, 239)
-    handle_surface.set_clip(clipRect)
-    image = surface.subsurface(handle_surface.get_clip())
-    return image.copy().convert_alpha()
+# def clip(surface, x, y):
+#     handle_surface = surface.copy()
+#     clipRect = Rect(x, y, 100, 239)
+#     handle_surface.set_clip(clipRect)
+#     image = surface.subsurface(handle_surface.get_clip())
+#     return image.copy().convert_alpha()
+
+def clip(surface: Surface , sprite_width: int, sprite_height: int) -> dict[tuple[int,int]:Surface]:
+    spritesheet_dict: dict = {}
+    sheet_width, sheet_height = surface.get_size()
+    for x in range(sheet_width//sprite_width + 1):
+        for y in range(sheet_height//sprite_height + 1):
+            clipRect = Rect(x*sprite_width, y*sprite_height, sprite_width, sprite_height)
+            surface.set_clip(clipRect)
+            image = surface.subsurface(surface.get_clip())
+            spritesheet_dict[(x,y)] = image.convert_alpha()
+    return spritesheet_dict
+
 
 
 def enemclip(surface, pos):
@@ -62,13 +76,10 @@ def enemclip(surface, pos):
     clipRect = Rect(pos[0] * w // 3, pos[1] * h // 2, w // 3, h // 2)
     handle_surface.set_clip(clipRect)
     image = surface.subsurface(handle_surface.get_clip())
+    give_items,
     return image.copy().convert_alpha(), w // 3, h // 2
 
-
-def lerp(i, f, t, thresh=20):
-    return i * (1 - t) + f * (t) if t <= 1 else f
-
-
+@jit
 def coler(x):
     # x = x * 3 / 50
     return (
@@ -77,7 +88,7 @@ def coler(x):
         (max(min(abs((x % 360) - 180), 120), 60) - 60) * 255 / 60,
     )
 
-
+@jit
 def putlines(text):
     nllimit = 8
     # text = [f'{x} ' for x in f'{text.capitalize()}'.split()]
@@ -86,31 +97,26 @@ def putlines(text):
         text.insert(nl, "\n")
     return "".join(text)
 
+def giveable(inventory: dict[tuple[str, int], int], items_given: dict[tuple[str, int], int]) -> bool:
+    # if items_given:
+    #     for item in items_given:
+    #         if items_given[item] + inventory.get(item, 0) < 0:
+    #             return False
+    # return True
+    return all([item_count + inventory.get(item, 0) >= 0 for item, item_count in items_given.items()])
 
-def adddict(a, b):
-    combinable = True
-    aa = a.copy()
-    bb = b.copy()
-    ab = {x: aa.get(x, 0) + bb.get(x, 0) for x in set(aa).union(bb)}
-    for k in bb:
-        if k not in aa:
-            aa[k] = 0
-        if ab[k] == 0:
-            del aa[k]
-        if ab[k] < 0:
-            combinable = False
-    return ab if combinable else a
+def give_items(inventory: dict[tuple[str, int]: int], items_given: dict[tuple[str, int]: int]):
+    for item in items_given:
+        if inventory.get(item, 0) + items_given[item] > 0:
+            inventory[item] = inventory.get(item, 0) + items_given[item]
+        else:
+            del inventory[item]
 
-
-def pullup(fontaliased, fontmin, screen, bgm, a):
-    screen.blit(
-        fontmin.render(f": {bgm}".replace("_", " "), fontaliased, (0, 0, 0)),
-        (80 - (a**1.3), 50),
-    )
-    screen.blit(
-        fontmin.render(f": {bgm}".replace("_", " "), fontaliased, (255, 255, 255)),
-        (79 - (a**1.3), 51),
-    )
+def pullup(fontaliased, font_small, screen, bgm, initial_tick) -> None:
+    text = f": {bgm.replace("_", " ")}"
+    x_position = (initial_tick**1.3)
+    screen.blit(font_small.render(text, fontaliased, (0, 0, 0)), (80 - x_position, 50))
+    screen.blit(font_small.render(text, fontaliased, (255, 255, 255)), (79 - x_position, 51))
 
 
 def _apply_glow(screen, w, h):
@@ -141,10 +147,24 @@ def _apply_flicker(screen, tick):
 
 
 def bar(screen, health, pos, colour=(0, 0, 0), radius=10):
-    draw.rect(screen, colour, Rect(pos[0] - (health / 2), pos[1], health, radius << 1))
-    draw.circle(screen, colour, (pos[0] - (health / 2), pos[1] + radius), radius)
-    draw.circle(screen, colour, (pos[0] + (health / 2), pos[1] + radius), radius)
+    draw.rect(screen, colour, Rect(pos[0] - (health / 2), pos[1], health, radius << 1), border_radius=radius)
 
-
+@jit
 def lognt(x):
-    return x * 2 / pow(10, (len("%i" % x) - 1))
+    return x * 2 / pow(10, (len(f"{int(x)}" ) - 1))
+
+def set_dialog(dialog, font, fontaliased):
+    dialog_len = len(dialog)
+    rendered_dialog = [
+        scroll(x) for x in [putlines(x[1]) for x in dialog]
+    ]
+    for i in rendered_dialog:
+        idex = rendered_dialog.index(i)
+        for j in i:
+            jdex = i.index(j)
+            rendered_dialog[idex][jdex] = [
+                font.render(k, fontaliased, (255, 255, 255))
+                for k in rendered_dialog[idex][jdex].split("\n")
+            ]
+    return dialog_len, rendered_dialog
+

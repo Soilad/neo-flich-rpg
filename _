@@ -1,0 +1,77 @@
+from classes import Room, Obj, Portal, Chaser, cwd, Trader
+
+levels = [
+    Room(
+        "flichroom",
+        "I_forgor_my_wallet",
+        1,
+        [
+            Obj(
+                f"{cwd}/rooms/flichroom/objects/bed.png",
+                (510, 357),
+                [{("Flich's balls", 0): 3}],
+                [
+                    [
+                        (("sawman", "ono"), "NO WAY?!?!?!?"),
+                        (("zweistein", "sad"), "is that the michael bed"),
+                        (
+                            0,
+                            "ihaveseencrimesbeyondanyonespossibilitieswithinthesewalls",
+                        ),
+                        (
+                            ("sawman", "woe"),
+                            "...",
+                        ),
+                        (
+                            ("zweistein", "sad"),
+                            "skill issue",
+                        ),
+                    ],
+                    [
+                        (("zweistein", "sad"), "why tf did u give us okarun's balls"),
+                        (
+                            0,
+                            "its gonna take me years to castrate someone with no balls so take this and leave",
+                        ),
+                        (("sawman", "ono"), "..."),
+                        (("sawman", "sad"), "jesus"),
+                    ],
+                ],
+            ),
+            Obj(
+                f"{cwd}/rooms/flichroom/objects/bed.png",
+                (510, 357),
+                [{("Flich's balls", 0): 3}],
+                [
+                    [
+                        (("sawman", "ono"), "NO WAY?!?!?!?"),
+                        (("zweistein", "sad"), "is that the michael bed"),
+                        (
+                            0,
+                            "ihaveseencrimesbeyondanyonespossibilitieswithinthesewalls",
+                        ),
+                        (
+                            ("sawman", "woe"),
+                            "...",
+                        ),
+                        (
+                            ("zweistein", "sad"),
+                            "skill issue",
+                        ),
+                    ],
+                    [
+                        (("zweistein", "sad"), "why tf did u give us okarun's balls"),
+                        (
+                            0,
+                            "its gonna take me years to castrate someone with no balls so take this and leave",
+                        ),
+                        (("sawman", "ono"), "..."),
+                        (("sawman", "sad"), "jesus"),
+                    ],
+                ],
+            ),
+        ],
+        [Portal((1230, 570), (100, 200), 1, (274, 208))],
+        "",
+    ),
+]
