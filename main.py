@@ -46,6 +46,7 @@ print(nighttime.strftime("%H %m %p"))
 
 textbox_surface: pygame.Surface = pygame.image.load(f"{cwd}/ui/textbox.png").convert_alpha()
 inventory_surface: pygame.Surface = pygame.image.load(f"{cwd}/ui/inventory.png").convert_alpha()
+death_screen: pygame.Surface = pygame.image.load(f"{cwd}/ui/rip_lmao.png").convert_alpha()
 
 font_medium = pygame.font.Font(f"{cwd}/ui/Soilad.ttf", 48)
 font_small = pygame.font.Font(f"{cwd}/ui/Soilad.ttf", 24)
@@ -294,6 +295,10 @@ while run:
             tab = 0
 
         case Menu.GAME:
+            if not (player_vars.s_health or player_vars.z_health):
+                for _ in range(50):
+                    screen.blit(death_screen, (0, 0))
+                    pygame.display.update()
             if not battle.enemies:
                 current_room.render(camera_x, camera_y)
                 if current_room.h != 720:
